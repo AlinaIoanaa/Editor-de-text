@@ -1,0 +1,363 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+struct element
+{
+    char caracter;
+    struct element *prev;
+    struct element *urm;
+}*capLista, *aux1, *aux2;
+
+typedef struct element element;
+
+element *capListaSirCopiat;
+
+void completareLista(FILE *date)
+{    
+    capLista = (element *)malloc(sizeof(element));
+    capLista->caracter = getc(date); /*citeste primul caracter din fisier*/
+    capLista->urm = NULL;
+    capLista->prev = NULL;
+    aux1 = capLista;
+    do
+    {
+        aux2 = (element *)malloc(sizeof(element));
+        aux2->caracter = getc(date);
+        aux2->urm = NULL;
+        aux2->prev = aux1;
+        aux1->urm = aux2;
+        aux1 = aux2;
+    }while(aux2->caracter != EOF); /*citeste fisierul caracter cu caracter si completeaza lista*/
+    fclose(date);
+}
+
+element* move(element* cursor, FILE *operatii)
+{
+    int aux, i; /*aux fiind numarul de caractere asupra carora se va efectua o anumita operatie*/
+    fscanf(operatii, "%d", &aux);
+    if((cursor == NULL && aux < 0) || (cursor != NULL &&cursor->caracter == EOF && aux > 0))
+    {
+        return cursor;
+    }
+    if(cursor == NULL && aux > 0)
+    {
+        cursor = capLista;
+        aux--;
+    }
+    if(cursor->caracter == EOF && aux < 0)
+    {
+        cursor = cursor->prev;
+        aux++;
+    }
+    if(aux > 0)
+    {
+        for(i = 0; i < aux; i++)
+        {
+            if(cursor->urm != NULL && cursor->urm->caracter != EOF)
+                cursor = cursor->urm;
+            else
+                return cursor;
+        }
+    }
+    else
+    {
+        for(i = 0; i > aux; i--)
+        {
+            if(cursor == capLista)
+                return NULL;
+            if(cursor->prev != NULL)
+                cursor = cursor->prev;
+            else
+                return cursor;
+        }
+    }
+    return cursor;
+}
+
+element* insert(element *cursor, FILE *operatii)
+{
+    char sir[50];
+    int i;
+    element* primulCaracter;
+    fscanf(operatii, "%s", sir);
+    aux1 = (element *)malloc(sizeof(element));
+    aux1->caracter = sir[0];/*memoreaza in noua lista creata primul element*/
+    aux1->urm = NULL;
+    if(cursor != NULL)
+    {
+        aux1->prev = cursor->prev;
+    }
+    else
+    {
+        aux1->prev == NULL;
+    }
+    primulCaracter = aux1;
+    for(i = 1; i < strlen(sir); i++)
+    {
+        aux2 = (element *)malloc(sizeof(element));
+        aux2->caracter = sir[i];
+        aux2->urm = NULL;
+        aux2->prev = aux1;
+        aux1->urm = aux2;
+        aux1 = aux2;
+    }
+    if(cursor == NULL)
+    {
+        aux2->urm = capLista;
+        capLista->prev = aux2;
+        cursor = aux2;
+        capLista = primulCaracter;
+    }
+    else
+    {
+        aux2->urm = cursor->urm;
+        cursor->urm->prev = aux2;
+        cursor->urm = primulCaracter;
+        cursor = aux2;
+    }
+    return cursor;
+}
+
+void del(element* cursor, FILE *operatii)
+{
+    int aux, i;
+    element *auxiliar;
+    fscanf(operatii, "%d", &aux);
+    if(cursor == NULL)
+        for(i = 0; i < aux; i++)
+        {
+            auxiliar = capLista;
+            capLista = capLista->urm;
+            free(auxiliar);
+        }
+    else
+        for(i = 0; i < aux; i++)
+        {
+            auxiliar = cursor->urm;
+            cursor->urm = cursor->urm->urm;
+            cursor->urm->prev = cursor;
+            free(auxiliar);
+        }
+}
+
+void copy(element *cursor, FILE *operatii)
+{
+    int aux, i = 1;
+    fscanf(operatii, "%d", &aux);
+    if(cursor == NULL)
+    {
+        cursor = capLista;
+    }
+    else
+    {
+        cursor = cursor->urm;
+    }
+    capListaSirCopiat = (element *)malloc(sizeof(element));
+    capListaSirCopiat->caracter = cursor->caracter;/*memoreaza in noua lista creata primul element*/
+    capListaSirCopiat->urm = NULL;
+    capListaSirCopiat->prev = NULL;
+    aux1 = capListaSirCopiat;
+    cursor = cursor->urm;
+    while(i < aux && cursor->caracter != EOF)
+    {
+        aux2 = (element *)malloc(sizeof(element));
+        aux2->caracter = cursor->caracter;
+        aux2->urm = NULL;
+        aux2->prev = aux1;
+        aux1->urm = aux2;
+        aux1 = aux2;
+        cursor = cursor->urm;
+        i++;
+    }
+}
+
+element* paste2(element *cursor)
+{
+    int i = 1;
+    element *capLs, *p, *q, *cursorAux, *sfarsitDeFisier;
+    cursorAux = capListaSirCopiat->urm;
+    capLs = (element *)malloc(sizeof(element));
+    capLs->caracter = capListaSirCopiat->caracter;/*memoreaza in noua lista creata primul element*/
+    capLs->urm = NULL;
+    capLs->prev = NULL;
+    p = capLs;
+    while(cursorAux->urm != NULL)
+    {
+        q = (element *)malloc(sizeof(element));
+        q->caracter = cursorAux->caracter;
+        q->urm = NULL;
+        q->prev = p;
+        p->urm = q;
+        p = q;
+        cursorAux = cursorAux->urm;
+    }
+    if(cursor == NULL)
+    {
+        aux1->urm = capLs;
+        capLista->prev = p;
+        capLista = capLs;
+        cursor = p;
+    }
+    else
+    {
+        if(cursor->urm->caracter != EOF)
+        {
+            capLs->prev = cursor;
+            p->urm = cursor->urm;
+            cursor->urm->prev = p;
+            cursor->urm = capLs;
+        }
+        else
+        {
+            if(cursor->caracter == EOF)
+                cursor = cursor->prev;
+            capLs->prev = cursor;
+            cursor->urm = capLs;
+            sfarsitDeFisier = (element *)malloc(sizeof(element));
+            sfarsitDeFisier->caracter = EOF;
+            sfarsitDeFisier->prev = p;
+            p->urm = sfarsitDeFisier;
+            sfarsitDeFisier->urm = NULL;
+        }
+    cursor = p;
+    }
+    return cursor;
+}
+
+element* paste(element *cursor, FILE *operatii)
+{
+    if(cursor == NULL)
+    {
+        aux1->urm = capLista;
+        capLista->prev = aux1;
+        capLista = capListaSirCopiat;
+        cursor = aux1;
+    }
+    else
+        {
+            if(cursor->urm->caracter != EOF)
+            {
+                capListaSirCopiat->prev = cursor;
+                aux1->urm = cursor->urm;
+                cursor->urm->prev = aux1;
+                cursor->urm = capListaSirCopiat;
+            }
+            else
+            {
+                if(cursor->caracter == EOF)
+                    cursor = cursor->prev;
+                capListaSirCopiat->prev = cursor;
+                cursor->urm = capListaSirCopiat;
+                sfarsitDeFisier = (element *)malloc(sizeof(element));
+                sfarsitDeFisier->caracter = EOF;
+                sfarsitDeFisier->prev = aux1;
+                aux1->urm = sfarsitDeFisier;
+                sfarsitDeFisier->urm = NULL;
+            }
+        cursor = aux1;
+        }
+    }
+    else
+    {
+        cursor = paste2(cursor);
+    }
+    return cursor;
+}
+
+
+element* backspace(element *cursor)
+{
+    element *auxiliar;
+    if(cursor != NULL)
+    {
+        auxiliar = cursor;
+        cursor->prev->urm = cursor->urm;
+        cursor->urm->prev = cursor->prev;
+        cursor = cursor->prev;
+        free(auxiliar);
+    }
+    return cursor;
+}
+
+void scriereTextInFisier(FILE *out)
+{
+    element *cursor;
+    for(cursor = capLista; cursor->urm != NULL; cursor = cursor->urm)
+    {
+        fputc(cursor->caracter,out);
+    }
+    fclose(out);
+}
+
+void dealocare(element *cursor)
+{
+    cursor = capLista;
+    do
+    {
+        cursor = cursor-urm;
+        free(cursor->prev);
+    }while(cursor->caracter != EOF);
+}
+
+int main(int arg, char **argv)
+{
+    FILE *date = NULL, *operatii = NULL, *out = NULL;
+    int N, i; /*unde N este numarul operatiilor din fisierul operatii.in*/
+    element *cursor;
+    char operatie[50][50];
+    date = fopen(argv[1], "r");
+    if(date == NULL)
+    {
+        puts("Fisierul nu poate fi deschis.");
+        exit(1);
+    }
+    completareLista(date);
+    operatii = fopen(argv[2], "r");
+    if(operatii == NULL)
+    {
+        puts("Fisierul nu poate fi deschis.");
+        exit(1);
+    }
+    fscanf(operatii, "%d", &N); /*se citeste numarul de operatii care urmeaza sa fie executate*/
+    cursor = (element *)malloc(sizeof(element));
+    cursor = NULL; /*se initializeaza cursorul cu valoarea nula*/
+    for(i = 0; i < N; i++)
+    {
+        fscanf(operatii, "%s", operatie[i]);
+        if(strcmp(operatie[i],"move") == 0)
+        {
+            cursor = move(cursor,operatii);
+        }
+        if(strcmp(operatie[i],"insert") == 0)
+        {
+            cursor = insert(cursor,operatii);
+        }
+        else if(strcmp(operatie[i],"del") == 0)
+        {
+            del(cursor,operatii);
+        }
+        else if(strcmp(operatie[i],"copy") == 0)
+        {
+            copy(cursor, operatii);
+        }
+        else if(strcmp(operatie[i],"paste") == 0)
+        {
+            cursor = paste(cursor);
+        }
+        else if(strcmp(operatie[i],"backspace") == 0)
+        {
+            cursor = backspace(cursor);
+        }
+    }
+    fclose(operatii);
+    out = fopen(argv[3], "w");
+    if(out == NULL)
+    {
+        puts("Fisierul nu poate fi deschis.");
+        exit(1);
+    }
+    scriereTextInFisier(out);
+    dealocare(cursor);
+    return 0;
+}
